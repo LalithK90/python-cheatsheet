@@ -261,7 +261,7 @@ from types import FunctionType, MethodType, LambdaType, GeneratorType
 ```
 
 ### Abstract Base Classes
-**Each abstract base class specifies a set of virtual subclasses. These classes are then recognized by isinstance() and issubclass() as subclasses of the ABC, although they are really not.**
+**Each abstract base class specifies a set of virtual subclasses. These classes are then recognized by isinstance() and issubclass() as subclasses of the ABC, although they are really not. ABC can also manually decide whether or not a specific class is its virtual subclass, usually based on which methods the class has implemented (Collection, Iterable).**
 
 ```python
 >>> from collections.abc import Sequence, Collection, Iterable
@@ -1414,7 +1414,8 @@ BaseException
       |    +-- IndexError         # Raised when a sequence index is out of range.
       |    +-- KeyError           # Raised when a dictionary key or set element is not found.
       +-- NameError               # Raised when a variable name is not found.
-      +-- OSError                 # Failures such as “file not found” or “disk full”.
+      +-- OSError                 # Errors such as “file not found” or “disk full” (see Open).
+
       |    +-- FileNotFoundError  # When a file or directory is requested but doesn't exist.
       +-- RuntimeError            # Raised by errors that don't fall into other categories.
       |    +-- RecursionError     # Raised when the maximum recursion depth is exceeded.
@@ -2332,10 +2333,11 @@ Progress Bar
 ------------
 ```python
 # $ pip3 install tqdm
-from tqdm import tqdm
-from time import sleep
-for el in tqdm([1, 2, 3]):
-    sleep(0.2)
+>>> from tqdm import tqdm
+>>> from time import sleep
+>>> for el in tqdm([1, 2, 3], desc='Processing'):
+...     sleep(1)
+Processing: 100%|████████████████████| 3/3 [00:03<00:00,  1.00s/it]
 ```
 
 
@@ -2989,7 +2991,7 @@ pg.draw.ellipse(<Surf>, color, <Rect>)
 
 ### Basic Mario Brothers Example
 ```python
-import collections, dataclasses, enum, io, pygame, urllib.request, itertools as it
+import collections, dataclasses, enum, io, itertools as it, pygame as pg, urllib.request
 from random import randint
 
 P = collections.namedtuple('P', 'x y')          # Position
@@ -2998,11 +3000,11 @@ SIZE, MAX_SPEED = 50, P(5, 10)                  # Screen size, Speed limit
 
 def main():
     def get_screen():
-        pygame.init()
-        return pygame.display.set_mode(2 * [SIZE*16])
+        pg.init()
+        return pg.display.set_mode(2 * [SIZE*16])
     def get_images():
         url = 'https://gto76.github.io/python-cheatsheet/web/mario_bros.png'
-        img = pygame.image.load(io.BytesIO(urllib.request.urlopen(url).read()))
+        img = pg.image.load(io.BytesIO(urllib.request.urlopen(url).read()))
         return [img.subsurface(get_rect(x, 0)) for x in range(img.get_width() // 16)]
     def get_mario():
         Mario = dataclasses.make_dataclass('Mario', 'rect spd facing_left frame_cycle'.split())
@@ -3012,14 +3014,14 @@ def main():
             [(randint(1, SIZE-2), randint(2, SIZE-2)) for _ in range(SIZE**2 // 10)]
         return [get_rect(*p) for p in positions]
     def get_rect(x, y):
-        return pygame.Rect(x*16, y*16, 16, 16)
+        return pg.Rect(x*16, y*16, 16, 16)
     run(get_screen(), get_images(), get_mario(), get_tiles())
 
 def run(screen, images, mario, tiles):
-    clock = pygame.time.Clock()
-    while all(event.type != pygame.QUIT for event in pygame.event.get()):
-        keys = {pygame.K_UP: D.n, pygame.K_RIGHT: D.e, pygame.K_DOWN: D.s, pygame.K_LEFT: D.w}
-        pressed = {keys.get(i) for i, on in enumerate(pygame.key.get_pressed()) if on}
+    clock = pg.time.Clock()
+    while all(event.type != pg.QUIT for event in pg.event.get()):
+        keys = {pg.K_UP: D.n, pg.K_RIGHT: D.e, pg.K_DOWN: D.s, pg.K_LEFT: D.w}
+        pressed = {keys.get(i) for i, on in enumerate(pg.key.get_pressed()) if on}
         update_speed(mario, tiles, pressed)
         update_position(mario, tiles)
         draw(screen, images, mario, tiles, pressed)
@@ -3033,12 +3035,12 @@ def update_speed(mario, tiles, pressed):
     mario.spd = P(*[max(-limit, min(limit, s)) for limit, s in zip(MAX_SPEED, P(x, y))])
 
 def update_position(mario, tiles):
-    new_p = mario.rect.topleft
+    p = mario.rect.topleft
     larger_speed = max(abs(s) for s in mario.spd)
     for _ in range(larger_speed):
         mario.spd = stop_on_collision(mario.spd, get_boundaries(mario.rect, tiles))
-        new_p = P(*[a + s/larger_speed for a, s in zip(new_p, mario.spd)])
-        mario.rect.topleft = new_p
+        p = P(*[a + s/larger_speed for a, s in zip(p, mario.spd)])
+        mario.rect.topleft = p
 
 def get_boundaries(rect, tiles):
     deltas = {D.n: P(0, -1), D.e: P(1, 0), D.s: P(0, 1), D.w: P(-1, 0)}
@@ -3058,7 +3060,7 @@ def draw(screen, images, mario, tiles, pressed):
     screen.blit(images[get_frame_index() + mario.facing_left * 9], mario.rect)
     for rect in tiles:
         screen.blit(images[18 if {*rect.topleft} & {0, (SIZE-1)*16} else 19], rect)
-    pygame.display.flip()
+    pg.display.flip()
 
 if __name__ == '__main__':
     main()
@@ -3103,7 +3105,7 @@ Name: a, dtype: int64
 
 ```python
 <Sr> = <Sr> ><== <el/Sr>                      # Returns a Series of bools.
-<Sr> = <Sr> +-*/ <el/Sr>                      # Non-matching keys get value NaN.
+<Sr> = <Sr> +-*/ <el/Sr>                      # Items with non-matching keys get value NaN.
 ```
 
 ```python
@@ -3176,7 +3178,7 @@ b  3  4
 
 ```python
 <DF>    = <DF> ><== <el/Sr/DF>                # Returns DataFrame of bools.
-<DF>    = <DF> +-*/ <el/Sr/DF>                # Non-matching keys get value NaN.
+<DF>    = <DF> +-*/ <el/Sr/DF>                # Items with non-matching keys get value NaN.
 ```
 
 ```python
@@ -3271,7 +3273,7 @@ b  3  4
 ```python
 <DF> = pd.read_json/html('<str/path/url>')
 <DF> = pd.read_csv/pickle/excel('<path/url>')
-<DF> = pd.read_sql('<query>', <connection>)
+<DF> = pd.read_sql('<table_name/query>', <connection>)
 <DF> = pd.read_clipboard()
 ```
 
@@ -3298,7 +3300,7 @@ c  7  8
 
 ```python
 <GB> = <DF>.groupby(column_key/s)             # DF is split into groups based on passed column.
-<DF> = <GB>.get_group(group_key)              # Selects a group by value of grouping column.
+<DF> = <GB>.get_group(group_key/s)            # Selects a group by value of grouping column.
 ```
 
 #### Aggregate, Transform, Map:
@@ -3367,7 +3369,7 @@ continents = pd.read_csv('https://datahub.io/JohnSnowLabs/country-and-continent-
 df = pd.merge(covid, continents, left_on='iso_code', right_on='Three_Letter_Country_Code')
 df = df.groupby(['Continent_Name', 'date']).sum().reset_index()
 df['Total Deaths per Million'] = df.total_deaths * 1e6 / df.population
-df = df[('2020-03-14' < df.date) & (df.date < '2020-10-26')]
+df = df[('2020-03-14' < df.date) & (df.date < '2020-11-08')]
 df = df.rename({'date': 'Date', 'Continent_Name': 'Continent'}, axis='columns')
 line(df, x='Date', y='Total Deaths per Million', color='Continent').show()
 ```
